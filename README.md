@@ -28,6 +28,31 @@ cli = BrightClient("myusername@example.org", "MyP4ssword!")
 
 ```
 
+#### Connecting as an Organisation User
+
+If you have organisation-level API credentials (Application ID, Key, and Secret), you can authenticate by providing them to the `BrightClient` constructor.
+
+```python
+from glowmarkt import BrightClient
+
+# Example credentials - replace with your own
+app_id = "c0f1b774-a586-4f72-9edd-27ead8aa7a8d"
+app_key = "your_app_key_goes_here"
+app_secret = "your_app_secret_goes_here"
+directory_id = "951cffa7-863f-4ae7-8f7e-ed682e690f91"
+
+cli = BrightClient(
+    username=app_key,
+    password=app_secret,
+    app_id=app_id,
+    directory_id=directory_id
+)
+
+# You can now use the client as usual
+ents = cli.get_virtual_entities()
+print(ents)
+```
+
 ### Discover virtual entities and resources
 
 A virtual entity is e.g. your Glowmarkt device or SMETS2 smart meter.

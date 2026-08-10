@@ -60,14 +60,69 @@ class Resource:
         return self.client.catchup(self.id)
 
 class BrightClient:
-    def __init__(self, username, password):
-        self.username = username
-        self.password = password
-        self.application = "b0f1b774-a586-4f72-9edd-27ead8aa7a8d"
+    def __init__(self, username, password, app_id="b0f1b774-a586-4f72-9edd-27ead8aa7a8d", directory_id=None):
+        """
+        Initialises the BrightClient for API interaction.
+
+        This client supports two authentication modes:
+        1.  **Retail User Mode (default):** Authenticates using the username and password
+            for a retail account on the Glowmarkt platform. `app_id` is optional and
+            defaults to the public Bright app ID.
+
+            Example:
+                `client = BrightClient("user@example.com", "password")`
+
+        2.  **Organisation User Mode:** Authenticates using an Application Key and Secret.
+            To use this mode, provide your organisation credentials as follows:
+            - `username`: Your Application Key.
+            - `password`: Your Application Secret.
+            - `app_id`: Your organisation's Application ID.
+            - `directory_id`: Your organisation's Directory ID.
+
+            Example:
+                `client = BrightClient(
+                    username="org_app_key",
+                    password="org_app_secret",
+                    app_id="your_app_id",
+                    directory_id="your_directory_id"
+                )`
+
+        Args:
+            username (str): The account username (for retail) or Application Key (for organisation).
+            password (str): The account password (for retail) or Application Secret (for organisation).
+            app_id (str, optional): The Application ID. Defaults to the public Bright app ID.
+                                    Required for Organisation mode.
+            directory_id (str, optional): If provided, the client operates in Organisation
+                                        User Mode. Defaults to None (Retail Mode).
+        """
         self.url = "https://api.glowmarkt.com/api/v0-1/"
         self.session = requests.Session()
+        self.application = app_id
+        self.directory_id = directory_id
+        self.token = None
 
-        self.token = self.authenticate()
+        if directory_id:
+            # Organisation Mode
+            self.session.auth = (username, password)
+            self.app_key = username
+            self.app_secret = password
+        else:
+            # Retail Mode
+            self.username = username
+            self.password = password
+            self.token = self.authenticate()
+
+    def _get_headers(self):
+        headers = {
+            "Content-Type": "application/json",
+            "applicationId": self.application
+        }
+        if self.directory_id:
+            headers["directoryId"] = self.directory_id
+        if hasattr(self, 'token') and self.token:
+            headers["token"] = self.token
+        return headers
+
 
     def authenticate(self):
 
@@ -100,17 +155,12 @@ class BrightClient:
 
     def get_virtual_entities(self):
 
-        headers = {
-            "Content-Type": "application/json",
-            "applicationId": self.application,
-            "token": self.token
-        }
-
         url = f"{self.url}virtualentity"
 
-        resp = self.session.get(url, headers=headers)
+        resp = self.session.get(url, headers=self._get_headers())
 
         if resp.status_code != 200:
+            print(f"Request failed with status code {resp.status_code}: {resp.text}")
             raise RuntimeError("Request failed")
 
         resp = resp.json()
@@ -143,15 +193,9 @@ class BrightClient:
 
     def get_resources(self, ve):
 
-        headers = {
-            "Content-Type": "application/json",
-            "applicationId": self.application,
-            "token": self.token
-        }
-
         url = f"{self.url}virtualentity/{ve}/resources"
 
-        resp = self.session.get(url, headers=headers)
+        resp = self.session.get(url, headers=self._get_headers())
 
         if resp.status_code != 200:
             raise RuntimeError("Request failed")
@@ -208,12 +252,6 @@ class BrightClient:
 
     def get_readings(self, resource, t_from, t_to, period, func="sum", nulls=False):
 
-        headers = {
-            "Content-Type": "application/json",
-            "applicationId": self.application,
-            "token": self.token
-        }
-
         utc = datetime.timezone.utc
 
         def time_string(x):
@@ -242,7 +280,7 @@ class BrightClient:
 
         url = f"{self.url}resource/{resource}/readings"
 
-        resp = self.session.get(url, headers=headers, params=params)
+        resp = self.session.get(url, headers=self._get_headers(), params=params)
 
         if resp.status_code != 200:
             raise RuntimeError("Request failed")
@@ -266,17 +304,9 @@ class BrightClient:
 
         # Tried it against the API, no data is returned
 
-        headers = {
-            "Content-Type": "application/json",
-            "applicationId": self.application,
-            "token": self.token
-        }
-
-        utc = datetime.timezone.utc
-
         url = f"{self.url}resource/{resource}/current"
 
-        resp = self.session.get(url, headers=headers)
+        resp = self.session.get(url, headers=self._get_headers())
 
         if resp.status_code != 200:
             print(resp.text)
@@ -305,15 +335,9 @@ class BrightClient:
 
         # Tried it against the API, no data is returned
 
-        headers = {
-            "Content-Type": "application/json",
-            "applicationId": self.application,
-            "token": self.token
-        }
-
         url = f"{self.url}resource/{resource}/catchup"
 
-        resp = self.session.get(url, headers=headers)
+        resp = self.session.get(url, headers=self._get_headers())
 
         if resp.status_code != 200:
             print(resp.text)
@@ -328,17 +352,9 @@ class BrightClient:
         # Tried it against the API, an error is returned
         raise RuntimeError("Not implemented.")
 
-        headers = {
-            "Content-Type": "application/json",
-            "applicationId": self.application,
-            "token": self.token
-        }
-
-        utc = datetime.timezone.utc
-
         url = f"{self.url}resource/{resource}/meterread"
 
-        resp = self.session.get(url, headers=headers)
+        resp = self.session.get(url, headers=self._get_headers())
 
         if resp.status_code != 200:
             raise RuntimeError("Request failed")
@@ -362,15 +378,9 @@ class BrightClient:
 
     def get_tariff(self, resource):
 
-        headers = {
-            "Content-Type": "application/json",
-            "applicationId": self.application,
-            "token": self.token
-        }
-
         url = f"{self.url}resource/{resource}/tariff"
 
-        resp = self.session.get(url, headers=headers)
+        resp = self.session.get(url, headers=self._get_headers())
 
         if resp.status_code != 200:
             raise RuntimeError("Request failed")

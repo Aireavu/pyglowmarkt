@@ -28,5 +28,6 @@ setuptools.setup(
         "scripts/glowmarkt-csv",
         "scripts/glowmarkt-today",
         "scripts/glowmarkt-mqtt",
+        "scripts/glowmarkt-org-details",
     ]
 )
