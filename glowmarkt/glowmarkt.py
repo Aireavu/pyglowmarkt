@@ -46,6 +46,11 @@ class Tariff:
     pass
 
 class Resource:
+    def __init__(self, data=None):
+        if data:
+            self.__dict__.update(data)
+            self.id = data.get("resourceId")
+    
     def get_readings(self, t_from, t_to, period, func="sum", nulls=False):
         return self.client.get_readings(self.id, t_from, t_to, period, func, nulls)
     def get_current(self):
@@ -153,6 +158,27 @@ class BrightClient:
 
         return resp["token"]
 
+    def get_vetypes(self):
+        url = f"{self.url}vetype"
+        resp = self.session.get(url, headers=self._get_headers())
+        if resp.status_code != 200:
+            raise RuntimeError("Request failed")
+        return resp.json()
+
+    def get_virtual_entity_details(self, ve_id):
+        url = f"{self.url}virtualentity/{ve_id}"
+        resp = self.session.get(url, headers=self._get_headers())
+        if resp.status_code != 200:
+            raise RuntimeError("Request failed")
+        return resp.json()
+
+    def get_resource_details(self, resource_id):
+        url = f"{self.url}resource/{resource_id}"
+        resp = self.session.get(url, headers=self._get_headers())
+        if resp.status_code != 200:
+            raise RuntimeError("Request failed")
+        return resp.json()
+
     def get_virtual_entities(self):
 
         url = f"{self.url}virtualentity"
@@ -160,7 +186,6 @@ class BrightClient:
         resp = self.session.get(url, headers=self._get_headers())
 
         if resp.status_code != 200:
-            print(f"Request failed with status code {resp.status_code}: {resp.text}")
             raise RuntimeError("Request failed")
 
         resp = resp.json()
@@ -205,14 +230,12 @@ class BrightClient:
         resources = []
 
         for elt in resp["resources"]:
-            r = Resource()
+            r = Resource(elt)
+            
+            # Map the specific fields the rest of the code expects
             r.id = elt["resourceId"]
-            r.type_id = elt["resourceTypeId"]
-            r.name = elt["name"]
-            r.classifier = elt["classifier"]
-            r.description = elt["description"]
-            r.base_unit = elt["baseUnit"]
-
+            r.name = elt.get("name")
+            
             r.client = self
 
             resources.append(r)

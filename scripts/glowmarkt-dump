@@ -4,6 +4,7 @@ from glowmarkt import *
 import datetime
 import sys
 import argparse
+import json
 
 try:
 
@@ -11,29 +12,54 @@ try:
         description=__doc__
     )
     parser.add_argument('--username', '-u',
-                        required=True,
                         help="Bright account username")
     parser.add_argument('--password', '-p',
-                        required=True,
                         help="Bright account password")
+    parser.add_argument('--app-id', help="Application ID")
+    parser.add_argument('--app-key', help="Application Key")
+    parser.add_argument('--app-secret', help="Application Secret")
+    parser.add_argument('--directory-id', help="Directory ID")
     parser.add_argument('--minutes', '-m',
                         default=240,
                         help="Number of minutes to look back")
     parser.add_argument('--period', '-d',
                         default="PT30M",
                         help="Summary period (default: PT1H)")
+    parser.add_argument('--show-vetypes', '--show-vetype', dest='show_vetypes', action='store_true',
+                        help="Show virtual entity types")
 
 
     # Parse arguments
     args = parser.parse_args(sys.argv[1:])
 
-    cli = BrightClient(args.username, args.password)
+    if args.directory_id:
+        # Organisation Mode
+        cli = BrightClient(
+            username=args.app_key,
+            password=args.app_secret,
+            app_id=args.app_id,
+            directory_id=args.directory_id
+        )
+    elif args.username and args.password:
+        # Retail Mode
+        cli = BrightClient(args.username, args.password)
+    else:
+        parser.error("Either --username and --password (Retail) or --app-key, --app-secret, --app-id and --directory-id (Organisation) must be provided.")
+
+    
+    if args.show_vetypes:
+        print("Virtual Entity Types:")
+        print(json.dumps(cli.get_vetypes(), indent=2))
+        
     ents = cli.get_virtual_entities()
 
     for ent in ents:
-        print("Entity:", ent.name)
+        ent_details = cli.get_virtual_entity_details(ent.id)
+        print(f"Entity: {ent.name} (ID: {ent.id})")
+        print(f"  Details: {json.dumps(ent_details, indent=2)}")
         for res in ent.get_resources():
-            print("  %s:" % res.name)
+            print(f"  Resource: {res.name} (ID: {res.id})")
+            print(f"    Details: {json.dumps(res.__dict__, indent=2)}")
 
             now = datetime.datetime.now().astimezone()
             t_to = res.round(now, args.period)
