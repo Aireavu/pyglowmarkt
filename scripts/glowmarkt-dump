@@ -49,7 +49,18 @@ try:
     
     if args.show_vetypes:
         print("Virtual Entity Types:")
-        print(json.dumps(cli.get_vetypes(), indent=2))
+        vetypes = cli.get_vetypes()
+        for vetype in vetypes:
+            if "resources" in vetype:
+                for res in vetype["resources"]:
+                    res_type_id = res.get("resourceTypeId")
+                    if res_type_id:
+                        try:
+                            res_details = cli.get_resourcetype_details(res_type_id)
+                            res.update(res_details)
+                        except Exception as e:
+                            print(f"    Warning: Could not fetch details for resource type {res_type_id}: {e}")
+        print(json.dumps(vetypes, indent=2))
         
     ents = cli.get_virtual_entities()
 

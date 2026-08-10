@@ -179,6 +179,13 @@ class BrightClient:
             raise RuntimeError("Request failed")
         return resp.json()
 
+    def get_resourcetype_details(self, resource_type_id):
+        url = f"{self.url}resourcetype/{resource_type_id}"
+        resp = self.session.get(url, headers=self._get_headers())
+        if resp.status_code != 200:
+            raise RuntimeError("Request failed")
+        return resp.json()
+
     def get_virtual_entities(self):
 
         url = f"{self.url}virtualentity"
