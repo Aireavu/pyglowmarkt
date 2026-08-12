@@ -53,6 +53,8 @@ ents = cli.get_virtual_entities()
 print(ents)
 ```
 
+For more information about using the API as an organisation user, see [Glowmarkt API documentaion for Organisation users](https://docs.glowmarkt.com/GlowmarktApiDataRetrievalDocumentationOrganisationUser.pdf)
+
 ### Discover virtual entities and resources
 
 A virtual entity is e.g. your Glowmarkt device or SMETS2 smart meter.
